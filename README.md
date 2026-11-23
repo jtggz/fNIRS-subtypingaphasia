@@ -2,7 +2,9 @@
 
 This repository contains the methods code for the 79-patient fNIRS analysis described in the manuscript. It covers NIRS-KIT signal preprocessing, HbO feature extraction, similarity network fusion (SNF), spectral clustering and statistical comparisons. Study data and numerical results are not distributed here because of privacy and ethics restrictions. Data may be requested from the corresponding authors. Running this repository requires appropriately authorized local data; it is not a claim that the paper's numerical results can be reproduced without those data.
 
-No license is supplied at this stage.
+The code in this repository is released under the [MIT License](LICENSE). Study
+data are not included or licensed here. NIRS-KIT must be obtained separately
+under its own terms.
 
 ## Requirements
 
