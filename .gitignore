@@ -1,0 +1,22 @@
+# Study data and generated analyses must never enter this repository.
+data/
+output/
+results/
+*.mat
+*.snirf
+*.nirs
+*.npz
+*.npy
+*.csv
+*.tsv
+*.xlsx
+*.xls
+*.png
+*.pdf
+*.zip
+*.log
+__pycache__/
+.pytest_cache/
+.venv/
+*.pyc
+.DS_Store
