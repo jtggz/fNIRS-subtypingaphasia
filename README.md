@@ -40,10 +40,10 @@ Channel QC, event timing adjudication and selection of the 79-patient cohort mus
    python -m fnirs_subtyping.cli cluster --input D:/private/analysis/features --output D:/private/analysis/clustering --robustness
    ```
 
-4. Run fixed-label patient–control and between-cluster profiling. Add `--clinical D:/private/clinical.csv` for clinical comparisons, subtype testing and patient-only covariate models; add `--behavior D:/private/behavior.csv` for four-group task scores, and `--edges` for exploratory edge analyses:
+4. Run fixed-label patient–control and between-cluster profiling. Add `--clinical D:/private/clinical.csv` for clinical comparisons, subtype testing and patient-only covariate models; add `--behavior D:/private/behavior.csv` for four-group task scores, `--edges` for exploratory edge analyses, and `--clr` for mALFF sensitivity:
 
    ```text
-   python -m fnirs_subtyping.cli analyze --input D:/private/analysis/features --labels D:/private/analysis/clustering/cluster_labels.csv --output D:/private/analysis/statistics --clinical D:/private/clinical.csv --behavior D:/private/behavior.csv --edges
+   python -m fnirs_subtyping.cli analyze --input D:/private/analysis/features --labels D:/private/analysis/clustering/cluster_labels.csv --output D:/private/analysis/statistics --clinical D:/private/clinical.csv --behavior D:/private/behavior.csv --edges --clr
    ```
 
 The full permutation and bootstrap analyses can take substantial time. For a quick software smoke check with authorized local inputs, use `--permutations 1 --subsamples 1`; those outputs are only a software check and must not be reported as study results.

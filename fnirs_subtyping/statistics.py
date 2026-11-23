@@ -183,3 +183,12 @@ def adjusted_patient_model(values: np.ndarray, labels: np.ndarray, age: np.ndarr
     fit = sm.OLS(y, sm.add_constant(design)).fit(cov_type="HC3")
     return pd.DataFrame({"term": fit.params.index, "coefficient": fit.params.values,
                          "se_hc3": fit.bse.values, "p": fit.pvalues.values})
+
+
+def clr_malff(values: np.ndarray) -> np.ndarray:
+    """Centered log-ratio sensitivity of the positive 22-ROI mALFF vector."""
+    values = np.asarray(values, float)
+    if values.ndim != 2 or values.shape[1] != 22 or np.any(values <= 0):
+        raise ValueError("CLR requires 22 positive mALFF values")
+    logged = np.log(values)
+    return logged - logged.mean(axis=1, keepdims=True)

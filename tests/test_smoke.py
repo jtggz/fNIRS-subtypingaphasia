@@ -9,7 +9,8 @@ from scipy.io import savemat
 
 from fnirs_subtyping.features import activation_beta, background_fc, extract_subject, fc, hrf, malff
 from fnirs_subtyping.clustering import FAMILIES, candidate, fused_from_features, scale_view
-from fnirs_subtyping.statistics import signed_auc, subtype_permutation
+from fnirs_subtyping.statistics import (behavior_tests, classify_profiles, profile_tests,
+                                        signed_auc, subtype_permutation)
 
 
 class SmokeTests(unittest.TestCase):
@@ -65,6 +66,17 @@ class SmokeTests(unittest.TestCase):
         subtypes = rng.choice(["a", "b", "c"], size=79)
         result = subtype_permutation(labels, subtypes, repetitions=10)
         self.assertTrue(0 <= result["p_monte_carlo"] <= 1)
+        patient = rng.normal(size=(79, 106))
+        control = rng.normal(size=(17, 106))
+        names = [f"f{i + 1:03d}" for i in range(106)]
+        frames = profile_tests(patient, control, labels, names, bootstrap_reps=2)
+        self.assertEqual(len(frames["cluster_vs_control"]), 318)
+        self.assertEqual(len(frames["patient_pairwise"]), 318)
+        classes = classify_profiles(frames, patient, control, labels, names, repetitions=2)
+        self.assertEqual(len(classes), 318)
+        scores = pd.DataFrame(rng.normal(size=(96, 3)), columns=["naming", "phonemic", "semantic"])
+        comparison = behavior_tests(scores, np.r_[labels, np.zeros(17, int)])
+        self.assertEqual(len(comparison["behavior_pairwise"]), 18)
 
 
 if __name__ == "__main__":

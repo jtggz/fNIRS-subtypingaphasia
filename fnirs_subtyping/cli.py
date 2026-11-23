@@ -9,8 +9,8 @@ import numpy as np
 import pandas as pd
 
 from .features import extract_subject
-from .clustering import candidate, fused_from_features, permutation_eigengaps, subsampling_ari, robustness
-from .statistics import (adjusted_patient_model, behavior_tests, classify_profiles,
+from .clustering import candidate, fused_from_features, permutation_eigengaps, subsampling_metrics, robustness
+from .statistics import (adjusted_patient_model, behavior_tests, classify_profiles, clr_malff,
                          clinical_tests, profile_tests, subtype_permutation)
 
 
@@ -88,8 +88,7 @@ def cluster(args: argparse.Namespace) -> None:
         _write(pd.DataFrame({"k": np.arange(2, 7), "eigengap": gaps, "p_holm": adjusted}),
                output, "candidate_eigengaps")
     if args.subsamples:
-        scores = subsampling_ari(matrices, labels, args.subsamples, args.seed)
-        _write(pd.DataFrame({"iteration": np.arange(1, len(scores) + 1), "ari": scores}),
+        _write(pd.DataFrame(subsampling_metrics(matrices, labels, args.subsamples, args.seed)),
                output, "subsampling_stability")
     if args.robustness:
         _write(pd.DataFrame(robustness(matrices, labels)), output, "robustness")
@@ -116,6 +115,14 @@ def analyze(args: argparse.Namespace) -> None:
     _write(classify_profiles(frames, patients[names].to_numpy(float),
                              controls[names].to_numpy(float), patients.cluster.to_numpy(int),
                              names, seed=args.seed), output, "profile_classification")
+    if args.clr:
+        clr_names = [f"clr_{name}" for name in names[:22]]
+        clr_frames = profile_tests(clr_malff(patients[names[:22]].to_numpy(float)),
+                                   clr_malff(controls[names[:22]].to_numpy(float)),
+                                   patients.cluster.to_numpy(int), clr_names, args.seed,
+                                   bootstrap_reps=0)
+        for name, frame in clr_frames.items():
+            _write(frame, output, "clr_malff_" + name)
     if args.edges:
         edge = pd.read_csv(input_dir / "edge_profiles.csv", dtype={"subject": str, "group": str})
         edge_pat = patients[["subject", "cluster"]].merge(edge.loc[edge.group.eq("PAT")],
@@ -133,9 +140,10 @@ def analyze(args: argparse.Namespace) -> None:
     if args.clinical:
         clinical = pd.read_csv(_external(args.clinical), dtype={"subject": str})
         clinical = patients[["subject", "cluster"]].merge(clinical, on="subject", validate="one_to_one")
-        columns = args.clinical_columns.split(",")
-        for name, frame in clinical_tests(clinical, clinical.cluster.to_numpy(int), columns).items():
-            _write(frame, output, name)
+        for family, columns in (("demographic", args.demographic_columns.split(",")),
+                                ("clinical", args.clinical_columns.split(","))):
+            for name, frame in clinical_tests(clinical, clinical.cluster.to_numpy(int), columns).items():
+                _write(frame, output, f"{family}_{name}")
         if "age" in clinical:
             for j, name in enumerate(names[88:106], start=88):
                 age = clinical.age.to_numpy(float)
@@ -185,10 +193,12 @@ def main() -> None:
     a.add_argument("--output", type=Path, required=True)
     a.add_argument("--clinical", type=Path)
     a.add_argument("--behavior", type=Path, help="Four-group naming and fluency task scores")
-    a.add_argument("--clinical-columns", default="age,post_onset_duration,education,WAB,BDAE")
+    a.add_argument("--demographic-columns", default="age,post_onset_duration,education")
+    a.add_argument("--clinical-columns", default="WAB,BDAE")
     a.add_argument("--subtype-permutations", type=int, default=100000)
     a.add_argument("--seed", type=int, default=20261111)
     a.add_argument("--edges", action="store_true", help="Run exploratory FC edge comparisons")
+    a.add_argument("--clr", action="store_true", help="Run mALFF centered log-ratio sensitivity")
     a.set_defaults(func=analyze)
     args = parser.parse_args()
     args.func(args)

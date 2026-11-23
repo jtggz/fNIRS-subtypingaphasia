@@ -10,8 +10,9 @@ arguments
 end
 assert(isfolder(inputDir), 'Input directory does not exist');
 assert(isfolder(kitDir), 'NIRS-KIT directory does not exist');
-assert(~startsWith(string(java.io.File(outputDir).getCanonicalPath), ...
-    string(java.io.File(fileparts(mfilename('fullpath'))).getCanonicalPath)), ...
+repoDir = string(java.io.File(fileparts(fileparts(mfilename('fullpath')))).getCanonicalPath);
+outPath = string(java.io.File(char(outputDir)).getCanonicalPath);
+assert(~(outPath == repoDir || startsWith(outPath, repoDir + filesep)), ...
     'Choose an output directory outside the code repository');
 addpath(fullfile(kitDir, 'Subfunctions'));
 addpath(fullfile(kitDir, 'Otherfunctions', 'TDDR-master'));

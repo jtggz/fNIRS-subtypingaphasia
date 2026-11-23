@@ -1,6 +1,7 @@
 """Family-balanced SNF, deterministic spectral clustering, and null testing."""
 from __future__ import annotations
 
+import math
 import numpy as np
 from scipy.spatial.distance import pdist, squareform
 from scipy.optimize import linear_sum_assignment
@@ -134,35 +135,36 @@ def permutation_eigengaps(features: dict[str, np.ndarray], repetitions: int = 50
     return observed, multipletests(p, method="holm")[1]
 
 
-def subsampling_ari(features: dict[str, np.ndarray], labels: np.ndarray,
-                    repetitions: int = 1000, seed: int = 20261111) -> np.ndarray:
+def agreement(reference: np.ndarray, fitted: np.ndarray) -> dict[str, float]:
+    overlap = np.zeros((3, 3))
+    for a in range(1, 4):
+        for b in range(1, 4):
+            intersection = np.sum((reference == a) & (fitted == b))
+            union = np.sum((reference == a) | (fitted == b))
+            overlap[a - 1, b - 1] = intersection / union if union else 0
+    row, col = linear_sum_assignment(-overlap)
+    matched = {int(a + 1): float(overlap[a, b]) for a, b in zip(row, col)}
+    return {"ari": adjusted_rand_score(reference, fitted),
+            **{f"jaccard_c{k}": matched[k] for k in range(1, 4)}}
+
+
+def subsampling_metrics(features: dict[str, np.ndarray], labels: np.ndarray,
+                        repetitions: int = 1000, seed: int = 20261111) -> list[dict]:
     rng = np.random.default_rng(seed)
     n = len(labels)
-    size = round(n * 0.8)
-    scores = np.empty(repetitions)
+    size = math.ceil(n * 0.8)
+    rows = []
     for i in range(repetitions):
         indices = np.sort(rng.choice(n, size=size, replace=False))
         w = fused_from_features({name: x[indices] for name, x in features.items()})
         sampled, _ = candidate(w, 3)
-        scores[i] = adjusted_rand_score(labels[indices], sampled)
-    return scores
+        rows.append({"iteration": i + 1, **agreement(labels[indices], sampled)})
+    return rows
 
 
 def robustness(features: dict[str, np.ndarray], labels: np.ndarray) -> list[dict]:
     """Parameter grid, view ablation, mean fusion and leave-one-out refits."""
-    from sklearn.metrics import adjusted_rand_score
     rows = []
-    def agreement(reference: np.ndarray, fitted: np.ndarray) -> dict[str, float]:
-        overlap = np.zeros((3, 3))
-        for a in range(1, 4):
-            for b in range(1, 4):
-                intersection = np.sum((reference == a) & (fitted == b))
-                union = np.sum((reference == a) | (fitted == b))
-                overlap[a - 1, b - 1] = intersection / union if union else 0
-        row, col = linear_sum_assignment(-overlap)
-        matched = {int(a + 1): float(overlap[a, b]) for a, b in zip(row, col)}
-        return {"ari": adjusted_rand_score(reference, fitted),
-                **{f"jaccard_c{k}": matched[k] for k in range(1, 4)}}
     for neighbors in (10, 15, 20, 25, 30):
         for iterations in (10, 20, 30, 50):
             if (neighbors, iterations) == (20, 20):
